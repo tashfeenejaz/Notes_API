@@ -18,7 +18,7 @@ export default function NoteCard({ note, onEdit, onDelete }) {
       {note.body && <p className="note-body">{note.body}</p>}
       <div className="note-meta">
         <span>#{note.id}</span>
-        <span>edited {formatTime(note.updated_at)}</span>
+        <span> edited {formatTime(note.updated_at)}</span>
       </div>
       <div className="note-actions">
         <button type="button" onClick={() => onEdit(note)}>

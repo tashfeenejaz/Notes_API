@@ -2,9 +2,10 @@ import { useState } from "react";
 import { api, ApiError } from "../api.js";
 
 export default function AuthScreen({ onLogin, onLog }) {
-  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [isSignUp, setIsSignUp] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -12,19 +13,45 @@ export default function AuthScreen({ onLogin, onLog }) {
     e.preventDefault();
     setError("");
     setBusy(true);
+
     try {
-      if (mode === "register") {
-        await api.register(username, password);
-      }
-      const { token, logEntry } = await api.login(username, password);
-      onLog(logEntry);
-      onLogin(token, username);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.detail);
-        if (err.logEntry) onLog(err.logEntry);
+      if (isSignUp) {
+        // Step 1: Signup Call
+        const signupRes = await api.signup(username, password);
+        if (signupRes?.logEntry) onLog?.(signupRes.logEntry);
+
+        // Step 2: Login Call after successful signup
+        const loginRes = await api.login(username, password);
+        if (loginRes?.logEntry) onLog?.(loginRes.logEntry);
+        
+        const token = loginRes?.access_token || loginRes?.token;
+        onLogin(token, username);
       } else {
-        setError("Could not reach the API. Is the backend running?");
+        // Pure Login Call
+        const loginRes = await api.login(username, password);
+        if (loginRes?.logEntry) onLog?.(loginRes.logEntry);
+
+        const token = loginRes?.access_token || loginRes?.token;
+        onLogin(token, username);
+      }
+    } catch (err) {
+      console.error("Auth Error:", err);
+      
+      if (err instanceof ApiError) {
+        if (err.logEntry) onLog?.(err.logEntry);
+        
+        // Pydantic validation array parsing (e.g., username short)
+        if (Array.isArray(err.detail)) {
+          const firstErr = err.detail[0];
+          const field = firstErr?.loc?.slice(-1)[0] || "field";
+          setError(`${field}: ${firstErr?.msg || "Validation error"}`);
+        } else if (typeof err.detail === "string") {
+          setError(err.detail);
+        } else {
+          setError(err.message || "Authentication failed");
+        }
+      } else {
+        setError(err.message || "Could not reach the server.");
       }
     } finally {
       setBusy(false);
@@ -34,21 +61,11 @@ export default function AuthScreen({ onLogin, onLog }) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <h1 className="auth-title">
-          {mode === "login" ? (
-            <>
-              Sign back <em>in</em>
-            </>
-          ) : (
-            <>
-              Start a <em>notebook</em>
-            </>
-          )}
-        </h1>
-        <p className="auth-sub">
-          {mode === "login"
-            ? "Your notes, kept where you left them."
-            : "Pick a username and password — this becomes your login."}
+        <h2 className="auth-title">
+          {isSignUp ? "Create account" : "Sign back"} <em>{isSignUp ? "" : "in"}</em>
+        </h2>
+        <p className="auth-subtitle">
+          {isSignUp ? "Start capturing your ideas today." : "Your notes, kept where you left them."}
         </p>
 
         {error && <div className="auth-error">{error}</div>}
@@ -58,45 +75,52 @@ export default function AuthScreen({ onLogin, onLog }) {
             <label htmlFor="username">Username</label>
             <input
               id="username"
+              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
+              placeholder="e.g. alice"
               required
             />
           </div>
+
           <div className="field">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              minLength={mode === "register" ? 8 : undefined}
-              required
-            />
+            <div className="password-wrapper">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                className="eye-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "👁️‍🗨️" : "👁️"}
+              </button>
+            </div>
           </div>
-          <button className="btn-primary" type="submit" disabled={busy}>
-            {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
+
+          <button type="submit" className="btn-primary" disabled={busy} style={{ marginTop: "16px" }}>
+            {busy ? "Please wait..." : isSignUp ? "Sign up" : "Sign in"}
           </button>
         </form>
 
-        <div className="auth-toggle">
-          {mode === "login" ? (
-            <>
-              New here?{" "}
-              <button type="button" onClick={() => { setMode("register"); setError(""); }}>
-                Create an account
-              </button>
-            </>
-          ) : (
-            <>
-              Already have one?{" "}
-              <button type="button" onClick={() => { setMode("login"); setError(""); }}>
-                Sign in instead
-              </button>
-            </>
-          )}
+        <div className="auth-switch">
+          <span>{isSignUp ? "Already have an account?" : "New here?"}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setError("");
+            }}
+          >
+            {isSignUp ? "Sign in" : "Create an account"}
+          </button>
         </div>
       </div>
     </div>

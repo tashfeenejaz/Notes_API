@@ -1,9 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 if (!API_URL) {
-  // Fails loudly on purpose -- same discipline as the backend's
-  // DATABASE_URL check. A silently-missing base URL just produces
-  // confusing "Failed to fetch" errors later.
   console.error(
     "VITE_API_URL is not set. Copy .env.example to .env and point it at your FastAPI server."
   );
@@ -11,18 +8,20 @@ if (!API_URL) {
 
 class ApiError extends Error {
   constructor(status, detail) {
-    super(detail || `Request failed: ${status}`);
+    super(
+      typeof detail === "string" 
+        ? detail 
+        : Array.isArray(detail) 
+        ? detail[0]?.msg || "Validation error" 
+        : `Request failed: ${status}`
+    );
     this.status = status;
     this.detail = detail;
   }
 }
 
 /**
- * Every call funnels through here so the two rules that matter today
- * apply everywhere, once: (1) attach the bearer token if we have one,
- * (2) check response.ok before trusting anything -- fetch only rejects
- * on a genuine network failure, so a 404 or 401 still resolves as a
- * "successful" fetch and has to be checked explicitly.
+ * Universal request wrapper for authorization & error formatting
  */
 async function request(path, { method = "GET", token, body, isForm = false } = {}) {
   const headers = {};
@@ -69,8 +68,7 @@ export const api = {
     const form = new URLSearchParams();
     form.set("username", username);
     form.set("password", password);
-    // OAuth2PasswordRequestForm on the backend expects
-    // application/x-www-form-urlencoded, not JSON.
+
     return request("/api/v1/auth/login", {
       method: "POST",
       body: form,
@@ -78,11 +76,13 @@ export const api = {
     }).then(({ data, logEntry }) => ({ token: data.access_token, logEntry }));
   },
 
-  register(username, password) {
-    return request("/api/v1/auth/register", {
+  // Fixed & Unified Signup method using internal request helper
+  async signup(username, password) {
+    const { data, logEntry } = await request("/api/v1/auth/register", {
       method: "POST",
       body: { username, password },
     });
+    return { data, logEntry };
   },
 
   listNotes(token) {
@@ -107,6 +107,10 @@ export const api = {
 
   deleteNote(token, id) {
     return request(`/api/v1/notes/${id}`, { method: "DELETE", token });
+  },
+
+  listAdminNotes(token) {
+    return request("/api/v1/admin/notes", { token });
   },
 };
 
