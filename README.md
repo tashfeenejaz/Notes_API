@@ -40,7 +40,7 @@ A full-stack, user-owned notes management system featuring a **FastAPI** backend
 
 ```text
 Notes_API/
-├── backend/
+├── notes-api/
 │   ├── app/
 │   │   ├── main.py            # FastAPI app, mounts all routers under /api/v1
 │   │   ├── database.py        # SQLAlchemy engine/session/Base
@@ -50,14 +50,16 @@ Notes_API/
 │   │   └── routers/
 │   │       ├── auth_router.py # POST /api/v1/auth/login, register
 │   │       ├── notes.py       # /api/v1/notes CRUD (JWT + ownership scoped)
-│   │       └── admin.py       # GET /api/v1/admin/notes (admin-only)
+│   │       ├── admin.py       # GET /api/v1/admin/notes (admin-only)
 │   │       └── chat.py        # /chat/local and /chat/hosted endpoints
 │   ├── alembic/               # Database migrations
 │   ├── scripts/               # Seeding & utility scripts
+│   ├── tests/                 # Unit tests (mocked client, happy/error path)
+│   ├── explanation.md         # LoRA/PEFT written explanation (r, target_modules)
 │   ├── Dockerfile
 │   └── requirements.txt
 │
-├── frontend/
+├── notes-frontend/
 │   ├── src/
 │   │   ├── components/        # AuthScreen, NoteCard, EditModal, etc.
 │   │   ├── api.js             # API wrapper & logging
