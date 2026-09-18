@@ -16,7 +16,7 @@ A full-stack, user-owned notes management system featuring a **FastAPI** backend
   - Dynamic login/signup flow with password visibility toggling.
   - Centered confirmation modals for deletion and inline note creation/editing.
   - Role-aware interface adjustments (Admin view vs User view).
-
+- **AI Chat Integration**: FastAPI endpoints (`/chat/local`, `/chat/hosted`) that route messages to either a local Ollama model or a real hosted OpenAI model through a single shared `ask_model` function — the same API contract works for both.
 ---
 
 ## 🛠️ Tech Stack
@@ -27,6 +27,14 @@ A full-stack, user-owned notes management system featuring a **FastAPI** backend
 - **DevOps**: Docker, Docker Compose, Uvicorn
 
 ---
+
+## 🤖 AI Chat Endpoints
+
+- `POST /chat/local` — sends a message to a locally running Ollama model.
+- `POST /chat/hosted` — sends a message to a real, hosted OpenAI model (`gpt-4o-mini`).
+- Both endpoints share one internal `ask_model(client, model, message)` function; the only thing that differs between a local and hosted call is which client and model name gets passed in.
+- Covered by unit tests using a mocked client (happy path + error path) — no real network calls or API spend in the test suite.
+- A short written explanation of LoRA/PEFT concepts (`r`, `target_modules`) is included in `explanation.md`.
 
 ## 📂 Repository Structure
 
@@ -43,6 +51,7 @@ Notes_API/
 │   │       ├── auth_router.py # POST /api/v1/auth/login, register
 │   │       ├── notes.py       # /api/v1/notes CRUD (JWT + ownership scoped)
 │   │       └── admin.py       # GET /api/v1/admin/notes (admin-only)
+│   │       └── chat.py        # /chat/local and /chat/hosted endpoints
 │   ├── alembic/               # Database migrations
 │   ├── scripts/               # Seeding & utility scripts
 │   ├── Dockerfile
