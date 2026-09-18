@@ -1,0 +1,5 @@
+## PEFT / LoRA Explanation
+
+In `LoraConfig`, `r` controls the **rank** of the low-rank adapter matrices — essentially how compressed or expressive the adapter is. A smaller `r` (e.g. 4 or 8) means far fewer trainable parameters, so training is fast and lightweight, but the model's capacity to adapt to new behavior is more limited. A larger `r` (e.g. 64+) gives a more expressive adapter that can capture more complex changes, but it increases trainable parameters and memory usage, pushing it closer to the cost of a full fine-tune.
+
+`target_modules` determines which specific parts of the model get an adapter injected — commonly the attention projection layers like `q_proj` and `v_proj`. Only these chosen layers are updated during training, while the entire base model (with its billions of parameters) stays frozen. This is exactly why LoRA training is dramatically cheaper than a full fine-tune: instead of retraining the whole model, you're only training a handful of small adapter matrices, which requires far less compute and GPU memory.
