@@ -85,7 +85,7 @@ cd notes-frontend && npm install && cd ..  # Install frontend deps
 
 ### Running the Project (One-Command)
 
-Root directory par rehte hue simple yeh command chalaayein:
+Run this command from root directory
 
 ```bash
 npm start
